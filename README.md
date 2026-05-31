@@ -29,3 +29,61 @@
 2. Файл docker-compose.yml с установкой PostgreSQL и заполненными данными из файлов mock_data(*).csv.
 3. Скрипты DDL (SQL) создания таблиц фактов и измерений в соответствии с моделью снежинка/звезда.
 4. Скрипты DML (SQL) заполнения таблиц фактов и измерений из исходных данных.
+
+## Выполненное решение
+
+В репозитории добавлена самодостаточная сборка PostgreSQL для лабораторной работы:
+
+- `docker-compose.yml` запускает PostgreSQL 16 и монтирует SQL-скрипты и исходные CSV.
+- `sql/00_create_raw_table.sql` создает staging-слой `staging.mock_data`.
+- `sql/01_load_raw_data.sql` загружает все 10 CSV-файлов через `COPY ... CSV HEADER`.
+- `sql/02_create_snowflake_model.sql` создает аналитическую модель снежинка/звезда.
+- `sql/03_fill_snowflake_model.sql` заполняет измерения и таблицу фактов из staging-слоя.
+- `sql/04_checks.sql` создает проверочные представления.
+
+### Модель данных
+
+Факт:
+
+- `analytics.fact_sales` - продажи, количество, сумма продажи и ссылки на измерения.
+
+Измерения:
+
+- `analytics.dim_customer`, `analytics.dim_customer_pet`, `analytics.dim_pet_type`, `analytics.dim_pet_breed`
+- `analytics.dim_seller`
+- `analytics.dim_product`, `analytics.dim_product_category`, `analytics.dim_pet_category`, `analytics.dim_brand`, `analytics.dim_material`
+- `analytics.dim_store`
+- `analytics.dim_supplier`
+- `analytics.dim_country`
+- `analytics.dim_date`
+
+### Запуск
+
+```bash
+docker compose up -d
+```
+
+PostgreSQL будет доступен на `localhost:5432`.
+
+Параметры подключения:
+
+- database: `pet_sales`
+- user: `postgres`
+- password: `postgres`
+
+Если нужно пересоздать базу и заново прогнать загрузку:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+### Проверка
+
+```sql
+SELECT * FROM analytics.v_model_checks;
+
+SELECT *
+FROM analytics.v_sales_by_product_category
+ORDER BY total_amount DESC;
+```
